@@ -1,10 +1,35 @@
-awaiting_customers = 0
-threads = []
-customers = []
-mutex = Mutex.new
-cv = ConditionVariable.new
+class Queue
+  MAX_FREE_CHAIRS = 10
 
-MAX_FREE_CHAIRS = 10
+  def initialize
+    @mutex = Mutex.new
+    @customers = []
+    @cv = ConditionVariable.new
+  end
+
+  def <<(customer)
+    @mutex.synchronize do
+      if @customers.size < MAX_FREE_CHAIRS
+        puts 'added customer'
+        @customers << customer
+        @cv.signal
+      else
+        puts 'no hair cut for me...'
+      end
+    end
+  end
+
+  def shift
+    @mutex.synchronize do
+      while @customers.empty?
+        puts 'no customers, go to sleep'
+        @cv.wait(@mutex)
+      end
+
+      @customers.shift
+    end
+  end
+end
 
 class Customer
   def initialize
@@ -16,17 +41,12 @@ class Customer
   end
 end
 
+threads = []
+queue = Queue.new
+
 barber_thread = Thread.new do
   while true do
-    customer = nil
-    mutex.synchronize do
-      while customers.empty?
-        puts 'no customers, go to sleep'
-        cv.wait(mutex)
-      end
-
-      customer = customers.shift if customers.any?
-    end
+    customer = queue.shift
 
     if customer
       puts 'start cutting customer'
@@ -38,16 +58,7 @@ end
 
 customer_thread = Thread.new do
   while true do
-    mutex.synchronize do
-      if awaiting_customers < MAX_FREE_CHAIRS
-        puts 'added customer'
-        awaiting_customers += 1
-        customers << Customer.new
-        cv.signal
-      else
-        puts 'no hair cut for me...'
-      end
-    end
+    queue << Customer.new
     sleep(rand(10))
   end
 end
