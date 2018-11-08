@@ -20,15 +20,12 @@ barber_thread = Thread.new do
   while true do
     customer = nil
     mutex.synchronize do
-      if customers.empty?
+      while customers.empty?
+        puts 'no customers, go to sleep'
         cv.wait(mutex)
       end
 
-      if customers.any?
-        customer = customers.shift
-      else
-        puts 'no customers, go to sleep'
-      end
+      customer = customers.shift if customers.any?
     end
 
     if customer
