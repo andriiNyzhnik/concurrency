@@ -21,12 +21,13 @@ barber_thread = Thread.new do
     customer = nil
     mutex.synchronize do
       if customers.empty?
-        puts 'no customers, go to sleep'
         cv.wait(mutex)
       end
 
       if customers.any?
         customer = customers.shift
+      else
+        puts 'no customers, go to sleep'
       end
     end
 
@@ -39,7 +40,7 @@ barber_thread = Thread.new do
 end
 
 customer_thread = Thread.new do
-  6.times do
+  while true do
     mutex.synchronize do
       if awaiting_customers < MAX_FREE_CHAIRS
         puts 'added customer'
